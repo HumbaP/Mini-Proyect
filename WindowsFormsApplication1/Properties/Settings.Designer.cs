@@ -26,5 +26,7 @@ namespace WindowsFormsApplication1.Properties
                     return defaultInstance;
                }
           }
+
+          public string ConnectionString { get; internal set; }
      }
 }
