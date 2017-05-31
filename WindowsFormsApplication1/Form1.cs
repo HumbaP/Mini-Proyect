@@ -14,10 +14,16 @@ namespace WindowsFormsApplication1
      public partial class Form1 : Form
      {
 
-          
+          public bool newOne=true;
+          static int[] tabIndexes = new int[] { 1,2,3,4,6,8,9,10,11, 12, 13, 14, 15, 16 };
+          Dictionary<int, String> hash = new Dictionary<int, string>();
+          static string[] columns = new string[] { "EmployeeID", "FirstName", "LastName","Title","TitleOfCourtesy", "BirthDate","HireDate","Address","City","Region","PostalCode","Country","HomePhone","Extension","Notes","ReportsTo" };
           public Form1()
           {
                InitializeComponent();
+               for (int j = 0; j < columns.Length; j++) {
+                    hash.Add(j, columns[j]);
+               }
           }   
 
           private void Form1_Load(object sender, EventArgs e)
@@ -25,7 +31,8 @@ namespace WindowsFormsApplication1
                String connectionString = "server=localhost\\SQLEXPRESS ; database=Northwind ; integrated security = true";
                Console.Write(connectionString);
 
-
+               radioButton1.Select();
+               
                using (SqlConnection sqcon = new SqlConnection(connectionString))
                {
                 //Abrimos la coneión
@@ -58,7 +65,14 @@ namespace WindowsFormsApplication1
         public void crearQuery() {
             String query = "Select * from employees where 1=1 ";
 
-            foreach(Object o in this.Controls.)
+               //foreach(Object o in this.Controls.)
+              
+               foreach (Control control in Controls) {
+                    if (tabIndexes.Contains(control.TabIndex))
+                         if (control.Text.Length > 0) {
+                            
+                         }
+               }
         }
 
           private void button1_Click(object sender, EventArgs e)
@@ -68,7 +82,10 @@ namespace WindowsFormsApplication1
 
           private void button2_Click(object sender, EventArgs e)
           {
-
+               foreach (Control c in Controls) {
+                    if (tabIndexes.Contains(c.TabIndex))
+                         c.Text = "";
+               }
           }
 
           private void radioButton2_CheckedChanged(object sender, EventArgs e)
@@ -145,5 +162,50 @@ namespace WindowsFormsApplication1
         {
             this.crearQuery();
         }
-    }
+
+          private void textBox1_Leave(object sender, EventArgs e)
+          {
+               this.crearQuery();
+          }
+
+          private void textBox2_Leave(object sender, EventArgs e)
+          {
+               this.crearQuery();
+          }
+
+          private void textBox3_Leave(object sender, EventArgs e)
+          {
+               this.crearQuery();
+          }
+
+          private void textBox5_Leave(object sender, EventArgs e)
+          {
+               this.crearQuery();
+          }
+
+          private void textBox6_Leave(object sender, EventArgs e)
+          {
+               this.crearQuery();
+          }
+
+          private void textBox7_Leave(object sender, EventArgs e)
+          {
+               this.crearQuery();
+          }
+
+          private void textBox8_Leave(object sender, EventArgs e)
+          {
+               this.crearQuery();
+          }
+
+          private void textBox9_Leave(object sender, EventArgs e)
+          {
+               this.crearQuery();
+          }
+
+          private void textBox10_Leave(object sender, EventArgs e)
+          {
+               this.crearQuery();
+          }
+     }
 }
