@@ -18,12 +18,15 @@ namespace WindowsFormsApplication1
           static int[] tabIndexes = new int[] { 1,2,3,4,6,8,9,10,11, 12, 13, 14, 15, 16 };
           Dictionary<int, String> hash = new Dictionary<int, string>();
           static string[] columns = new string[] { "EmployeeID", "FirstName", "LastName","Title","TitleOfCourtesy", "BirthDate","HireDate","Address","City","Region","PostalCode","Country","HomePhone","Extension","Notes","ReportsTo" };
+          Dictionary<int, String> empleados;
+          SqlConnection sqcon;
           public Form1()
           {
                InitializeComponent();
                for (int j = 0; j < columns.Length; j++) {
                     hash.Add(j, columns[j]);
                }
+
           }   
 
           private void Form1_Load(object sender, EventArgs e)
@@ -32,48 +35,150 @@ namespace WindowsFormsApplication1
                Console.Write(connectionString);
 
                radioButton1.Select();
-               
-               using (SqlConnection sqcon = new SqlConnection(connectionString))
-               {
-                //Abrimos la coneión
-                try
-                {
-                    sqcon.Open();
-                    SqlDataReader reader = null;
-                    String query = "select * from employees";
-                    SqlCommand myCommand = new SqlCommand(query, sqcon);
 
-                    //Ejecutamos el comando SQL
-                    reader = myCommand.ExecuteReader();
-
-                    //imprimimos un encabezado para mostrar una tabla de resultados
-                    while (reader.Read()) {
-                        Console.WriteLine(reader["EmployeeID"]+ "\t"+reader["FirstName"]);
-                    }
-
-                }
-                catch (SqlException ex)
-                {
-                    Console.WriteLine("HAy error en algo");
-                }
-                catch (Exception ex) {
-                }
+               //Abrimos la coneión
+               sqcon = Connexion.getConnection();
                   
-               }
+               
           }
 
-        public void crearQuery() {
-            String query = "Select * from employees where 1=1 ";
-
-               //foreach(Object o in this.Controls.)
-              
-               foreach (Control control in Controls) {
-                    if (tabIndexes.Contains(control.TabIndex))
-                         if (control.Text.Length > 0) {
-                            
-                         }
+          public void limpiar() {
+               foreach (Control c in Controls)
+               {
+                    if (c.TabIndex < columns.Length)
+                    {
+                         c.Text = "";
+                         validacionDesign((TextBox)c, true);
+                    }
                }
-        }
+               //Regresamos el focus al id
+               textBox4.Focus();
+          }
+
+       
+
+          public void getJefes(int exclude=0) {
+               
+               SqlDataAdapter adapter = new SqlDataAdapter("select EmployeeID, Name=FirstName+' '+LastName from employees where EmployeeID not in("+exclude+")", sqcon);
+               DataTable dt = new DataTable();
+               adapter.Fill(dt);
+               comboBox1.DataSource = dt.DefaultView;
+               comboBox1.DisplayMember = "Name";
+               comboBox1.ValueMember = "EmployeeID";
+               
+
+          }
+          public SqlDataReader consultar(string query) {
+               try
+               {
+                    SqlCommand myCommand = new SqlCommand(query, sqcon);
+                    //Ejecutamos el comando SQL
+                    return myCommand.ExecuteReader();
+               }
+               catch (Exception e)
+               {
+
+                    
+                    return null;
+               }
+           }
+
+          public Boolean validarFecha(TextBox textbox) {
+              
+               if (textbox.TextLength > 0)
+               {
+                    String[] fechas=textbox.Text.Split('/');
+                    if (fechas.Length == 3) {
+                         int dia;
+                         int.TryParse(fechas[0], out dia);
+                         int mes;
+                         int.TryParse(fechas[1], out mes);
+                         int year;
+                         int.TryParse(fechas[2], out year);
+                         if (mes > 12 || mes <= 0)
+                              return false;
+                         if (year % 4 == 0 && mes == 2)
+                         {//Es año bisiesto y es febrero
+                              if (dia <= 29) {
+                                   return true;
+                              }
+                         }
+                         else if (mes == 2) { //Es febrero
+                              if (dia <= 28)
+                              {
+                                   return true;
+                              }
+                         }
+                         else if (mes <= 7) {//Primera mitad pares son chidos
+                              if (mes % 2 == 0)
+                              {
+                                   if (dia <= 30)
+                                   {
+                                        return true;
+
+                                   }
+                              }
+                              else {
+                                   if (dia <= 31)
+                                   {
+                                        return true;
+                                   }
+                              }
+                         }else
+                         {//Segunda mitad, no chidos
+                              if (mes % 2 == 1)
+                              {
+                                   if (dia <= 30)
+                                   {
+                                        return true;
+
+                                   }
+                              }
+                              else
+                              {
+                                   if (dia <= 31)
+                                   {
+                                        return true;
+                                   }
+                              }
+                         }
+                    }
+               }
+               return false;
+          }
+
+          public Boolean buscarEmpleado(int id) {
+               string query = "select * from employees where EmployeeId=" + id;
+               SqlDataReader reader= consultar(query);
+               int empleadoId=0;
+               if (reader != null) {
+                    if (!reader.HasRows) {
+                         MessageBox.Show("El empleado no existe", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
+                         reader.Close();
+                         getJefes();
+                         return false;
+                    }
+
+                    while (reader.Read()) {
+                         empleadoId = (int)reader["EmployeeID"];
+                         foreach (Control c in Controls) {
+                              if (hash.ContainsKey(c.TabIndex-1)) {
+                                   c.Text = ""+reader[hash.ElementAt(c.TabIndex-1).Value];
+                              }
+                         }
+                    }
+                    //Cerramos el maldito reader
+                 
+                    reader.Close();
+                    getJefes(empleadoId);
+                    return true;
+               }
+               MessageBox.Show("El empleado no existe", "Error",
+               MessageBoxButtons.OKCancel, MessageBoxIcon.Asterisk);
+               getJefes();
+               return false;
+          }
 
           private void button1_Click(object sender, EventArgs e)
           {
@@ -82,15 +187,14 @@ namespace WindowsFormsApplication1
 
           private void button2_Click(object sender, EventArgs e)
           {
-               foreach (Control c in Controls) {
-                    if (tabIndexes.Contains(c.TabIndex))
-                         c.Text = "";
-               }
+               limpiar();
           }
 
           private void radioButton2_CheckedChanged(object sender, EventArgs e)
           {
-            textBox4.Enabled = true;
+               newOne = false;
+               limpiar();
+               textBox4.Enabled = true;
           }
 
           private void label1_Click(object sender, EventArgs e)
@@ -130,7 +234,10 @@ namespace WindowsFormsApplication1
 
         private void radioButton1_CheckedChanged(object sender, EventArgs e)
         {
+            newOne = true;
+            limpiar();
             textBox4.Enabled = false;
+            
         }
 
         private void textBox2_TextChanged(object sender, EventArgs e)
@@ -155,57 +262,130 @@ namespace WindowsFormsApplication1
 
         private void textBox10_TextChanged(object sender, EventArgs e)
         {
-            Console.WriteLine("Se ha salido alv");
+            
         }
 
         private void textBox4_Leave(object sender, EventArgs e)
         {
-            this.crearQuery();
-        }
+                    TextBox textbox = (TextBox)sender;
+               if (newOne)
+               {
+                    validacionDesign(textbox, true);
+                    return;}
+               else {
+
+                    int id;
+                    int.TryParse(textbox.Text, out id);
+                    if (id > 0)
+                    {
+                         if (!buscarEmpleado(id))
+                         {
+                              limpiar();
+                         }
+                    }
+                    else { validacionDesign(textbox, false); }
+
+               }
+          }
 
           private void textBox1_Leave(object sender, EventArgs e)
           {
-               this.crearQuery();
+               
           }
 
           private void textBox2_Leave(object sender, EventArgs e)
           {
-               this.crearQuery();
+               
           }
 
           private void textBox3_Leave(object sender, EventArgs e)
           {
-               this.crearQuery();
+              
           }
 
           private void textBox5_Leave(object sender, EventArgs e)
           {
-               this.crearQuery();
+              
           }
 
           private void textBox6_Leave(object sender, EventArgs e)
           {
-               this.crearQuery();
+               
           }
 
           private void textBox7_Leave(object sender, EventArgs e)
           {
-               this.crearQuery();
           }
 
           private void textBox8_Leave(object sender, EventArgs e)
           {
-               this.crearQuery();
           }
 
           private void textBox9_Leave(object sender, EventArgs e)
           {
-               this.crearQuery();
           }
 
           private void textBox10_Leave(object sender, EventArgs e)
           {
-               this.crearQuery();
+          }
+
+          private void label12_Click(object sender, EventArgs e)
+          {
+
+          }
+
+          private void textBox11_TextChanged(object sender, EventArgs e)
+          {
+
+          }
+
+          private void label13_Click(object sender, EventArgs e)
+          {
+
+          }
+
+          private void textBox12_TextChanged(object sender, EventArgs e)
+          {
+
+          }
+
+          private void label14_Click(object sender, EventArgs e)
+          {
+
+          }
+
+          private void label16_Click(object sender, EventArgs e)
+          {
+
+          }
+
+          private void textBox12_Leave(object sender, EventArgs e)
+          {
+               Console.WriteLine();
+               validacionDesign((TextBox)sender, validarFecha((TextBox)sender));
+          }
+
+          private void validacionDesign(TextBox textbox, bool passed) {
+               if (passed) {
+                    textbox.BackColor = Color.White;
+                    textbox.ForeColor = Color.Black;
+               }
+               else { 
+                    textbox.BackColor = Color.Red;
+                    textbox.ForeColor = Color.White;
+               }
+          }
+
+          private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+          {
+               ComboBox combo = (ComboBox)sender;
+               
+          }
+
+          private void button3_Click(object sender, EventArgs e)
+          {
+               Form2 form2 = new Form2();
+               form2.Show();
           }
      }
 }
